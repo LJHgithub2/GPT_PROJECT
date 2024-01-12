@@ -1,4 +1,4 @@
-let addr="http://localhost:3000"
+let addr="https://port-0-gpt-project-1efqtf2dlratcfa4.sel5.cloudtype.app"
 let processLock=false;
 var questionList = [];
 let lastIndex=-1;
