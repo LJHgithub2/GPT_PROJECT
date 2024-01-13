@@ -5,8 +5,8 @@ let lastIndex=-1;
 let speakBool=false;
 let imgsrc=[
   "image/user.jpg",//user
-  "image/jesus.png",//jesus
-  "image/spinner.gif"//spinner
+  "image/Jesus.png",//jesus
+  "image/Spinner.gif"//spinner
 ];
 
 function fetchStatus() {
