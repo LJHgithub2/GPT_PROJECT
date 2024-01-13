@@ -1,19 +1,19 @@
-let addr="https://port-0-gpt-project-1efqtf2dlratcfa4.sel5.cloudtype.app"
+//let addr="https://port-0-gpt-project-1efqtf2dlratcfa4.sel5.cloudtype.app"
+
+let addr="http://localhost:3000";
 let processLock=false;
 var questionList = [];
 let lastIndex=-1;
 let speakBool=false;
 let imgsrc=[
-  "image/user.jpg",//user
-  "image/Jesus.png",//jesus
-  "image/Spinner.gif"//spinner
+  "/video/wait.mp4",
+  "/video/execute.mp4",
 ];
 
 function fetchStatus() {
   fetch(addr+'/question')
       .then(response => response.json())
       .then(data => {
-        console.log(data.list, data.lastIndex);
         if (lastIndex === -1 && data.lastIndex != -1){
           lastIndex = data.lastIndex;
           return;
@@ -33,24 +33,26 @@ function fetchStatus() {
       })
       .catch(error => console.error('Error:', error));
 }
-async function speak(text) {
-  if (speakBool){
-    var msg = new SpeechSynthesisUtterance();
-    var textArea = text; // 텍스트 설정
-    msg.text = textArea;
-    window.speechSynthesis.speak(msg);
+
+async function speak(audioUrl) {
+  if (speakBool) {
+    sleep(1000);
     return new Promise(resolve => {
-      msg.onend = resolve;
+      const audio = new Audio(audioUrl);
+      audio.play();
+      // 오디오 재생이 끝나면 Promise를 resolve합니다.
+      audio.onended = () => {
+        resolve();
+      };
     });
-  }
-  else {
-    await sleep(5000);
+  } else {
+    await sleep(10000);
   }
 }
 
-async function handleClick(text) {
+async function handleAudio(audioUrl) {
   console.log('start');
-  await speak(text);
+  await speak(audioUrl);
   console.log('stop');
 }
 
@@ -127,8 +129,12 @@ function updateSelectQuestion(name, question) {
 async function chatgpt(num){
   try {
     let response = await fetch(addr + '/ask/' + num);
-    let data = await response.text();
-    return data;
+    let result = await response.json();
+    
+    return {
+      answer: result.answer,
+      audioUrl: result.audioUrl
+    };
   } catch (error) {
     console.error('Error:', error);
   }
@@ -137,9 +143,13 @@ async function chatgpt(num){
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-function changeImageSource(srcNumber) {
-  var imageElement = document.querySelector('.img-fluid'); // 이미지 요소 선택
-  imageElement.src = imgsrc[srcNumber]; // 새로운 소스로 'src' 속성 변경
+
+function changeVideoSource(newSource) {
+  var videoElement = document.getElementById('videoElement');
+  var sourceElement = document.getElementById('video_src');
+  
+  sourceElement.src = imgsrc[newSource];
+  videoElement.load(); // 비디오를 새 소스로 로드
 }
 
 async function processQ(){
@@ -152,9 +162,9 @@ async function processQ(){
       contentsToggle("",text,0);
       removeFirstListItem();
       questionList.pop(0);
-      var answer = await chatgpt(num);
+      var {answer, audioUrl} = await chatgpt(num);
       contentsToggle(answer,text,1);
-      await handleClick(answer);
+      await handleAudio(audioUrl);
       contentsToggle("","",2);
       var text=getFirstListItemText();
     }
@@ -164,21 +174,22 @@ async function processQ(){
 function contentsToggle(answer,query,flag){
   var spinner =document.getElementById('spinner');
   if (flag ==0) {
-    changeImageSource(2);
     updateSelectQuestion(query[0],query[1]);
     updateSelectList(query[0],query[1],"처리중");
     document.getElementById('contents').textContent="";
     spinner.style.display = 'block';
   }
   else if(flag == 1) {
-    changeImageSource(1);
-    if(speakBool) updateSelectList(query[0],query[1],"음성처리중");
+    changeVideoSource(1);
+    if(speakBool) {
+      updateSelectList(query[0],query[1],"음성처리중");
+    }
     else updateSelectList(query[0],query[1],"5초간 대기중");
     document.getElementById('contents').textContent=answer;
     spinner.style.display = 'none';
   }
   else if(flag == 2) {
-    changeImageSource(0);
+    changeVideoSource(0);
     updateSelectList("질문없음","-","대기중");
     updateSelectQuestion("질문자","-");
     document.getElementById('contents').textContent="질문 대기중";
@@ -191,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setInterval(fetchStatus, 5000);
   // 초기 상태 로드
   fetchStatus();
-  changeImageSource(0);
+  //changeImageSource(0);
 
   
   const ttsCheckbox = document.getElementById('flexSwitchCheckReverse');
