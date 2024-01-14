@@ -1,6 +1,6 @@
-//let addr="https://port-0-gpt-project-1efqtf2dlratcfa4.sel5.cloudtype.app"
+let addr="https://port-0-gpt-project-1efqtf2dlratcfa4.sel5.cloudtype.app"
+// let addr="http://localhost:3000";
 
-let addr="http://localhost:3000";
 let processLock=false;
 var questionList = [];
 let lastIndex=-1;
@@ -46,7 +46,6 @@ async function speak(audioUrl) {
   return new Promise((resolve, reject) => {
     try {
       const audio = new Audio(audioUrl);
-      
       audio.play().then(() => {
         audio.addEventListener('ended', () => {
           resolve(); // 오디오 재생이 완료되면 Promise를 resolve합니다.
