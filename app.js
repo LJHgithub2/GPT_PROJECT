@@ -35,6 +35,11 @@ app.get('/', (req, res) => {
     const indexPath = path.join(__dirname, 'public', 'view', 'index.html');
     res.sendFile(indexPath);
 });
+app.get('/demo', (req, res) => {
+    // Use path.join to create the correct absolute file path
+    const indexPath = path.join(__dirname, 'public', 'view', 'demo.html');
+    res.sendFile(indexPath);
+});
 app.get('/question', (req, res) => {
     // Use path.join to create the correct absolute file path
     try {
@@ -66,15 +71,16 @@ app.listen(port, () => {
     console.log(`Server is listening at localhost:${port}`);
 });
 
+
 async function processQueue() {
     while (requestQueue.length > 0) {
         const { num, res } = requestQueue[0];
         try {
             if (question.list[num].answer.length <= 0) {
                 const answer = await gptAPI(question.list[num].message);
-                const audioFileUrl = await fetchAudio(answer);
-                console.log(audioFileUrl);
-                question.list[num].answer = answer;
+                const audioFileUrl = await fetchAudio(answer[0],answer[1]);
+               
+                question.list[num].answer = answer[0];
                 question.list[num].audioUrl = audioFileUrl;
                 getQuestionList.lastIndex=num;
             }
@@ -90,7 +96,6 @@ async function processQueue() {
         }
     }
 }
-
 async function gptAPI(text) {
     try {
         console.log("gpt 시작");
@@ -100,23 +105,25 @@ async function gptAPI(text) {
                 { role: "system", content: "예수님 말투로 대답해줘" },
                 { role: "system", content: "답변을 줄때 성경의 구절을 인용해서 답변해줘" },
                 { role: "system", content: "~했어, ~줄게, ~줘 처럼 친근한 어투가 아닌 무조건 ~하노라, ~일지어라, ~하리라 같은 예수님 말투를 써서 답변해" },
+                { role: "system", content: "답변의 450토큰이 되도록 답변의 길이를 조절해서 답변을 마무리를 잘해줘" },
+                { role: "system", content: "답변이 중간에 끊키지 않도록 분량 조절을 잘해줘" },
                 { role: 'user', content:text}
             ],
             model: "gpt-3.5-turbo",
-            max_tokens: 3500,
+            max_tokens: 450,
         });
         // 대화 내용만 출력
         console.log(completion.choices[0].message.content);
+        console.log(completion['usage']['total_tokens']);
         console.log("gpt 끝");
-        return completion.choices[0].message.content;
+        return [completion.choices[0].message.content,completion['usage']['total_tokens']];
     } catch (error) {
         // 오류 처리
         console.error("Error:", error);
         return false;
     }
 }
-
-async function fetchAudio(text) {
+async function fetchAudio(text, tokenCount) {
     try {
         console.log("tts 시작");
         const FILE_NAME = "./public/audio/tempAudio"+ audioNum +".mp3"; // 여기에 저장할 파일 이름을 입력하세요
@@ -131,9 +138,14 @@ async function fetchAudio(text) {
             lang: 'auto',
             actor_id: '6386d6c8e47053047c6af4c5', // 여기에 사용할 actor_id를 입력하세요
             xapi_hd: true,
-            model_version: 'latest'
+            model_version: 'latest',
+            max_seconds: 60
         };
-
+        
+        // tokenCount가 400을 초과하는 경우에만 force_length 속성 추가
+        if (tokenCount > 600) {
+            body.force_length = "1";
+        }
         const response = await axios.post('https://typecast.ai/api/speak', body, { headers });
 
 
@@ -165,10 +177,10 @@ async function downloadAudioAndReturnPath(audioResponse, fileName) {
         
         audioResponse.data.on('data', (chunk) => {
             downloaded += chunk.length;
-            console.log(`다운로드 진행: ${downloaded} / ${totalSize} (${((downloaded / totalSize) * 100).toFixed(2)}%)`);
+            //console.log(`다운로드 진행: ${downloaded} / ${totalSize} (${((downloaded / totalSize) * 100).toFixed(2)}%)`);
         });
 
-        writer.on('finish', () => {
+        writer.on('finish', async() => {
             console.log("TTS 끝");
             resolve("./audio/tempAudio" + (audioNum - 1) + ".mp3");
         });

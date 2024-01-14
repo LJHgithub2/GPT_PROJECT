@@ -33,27 +33,31 @@ function fetchStatus() {
       })
       .catch(error => console.error('Error:', error));
 }
-
-async function speak(audioUrl) {
-  if (speakBool) {
-    sleep(1000);
-    return new Promise(resolve => {
-      const audio = new Audio(audioUrl);
-      audio.play();
-      // 오디오 재생이 끝나면 Promise를 resolve합니다.
-      audio.onended = () => {
-        resolve();
-      };
-    });
-  } else {
-    await sleep(10000);
-  }
+function hendle(audioUrl){
+  speak(audioUrl);
 }
+async function speak(audioUrl) {
+  if (!speakBool) {
+    console.log("음성듣기를 활성화시켜주세요.");
+    await sleep(1000);
+    return;
+  }
 
-async function handleAudio(audioUrl) {
-  console.log('start');
-  await speak(audioUrl);
-  console.log('stop');
+  return new Promise((resolve, reject) => {
+    try {
+      const audio = new Audio(audioUrl);
+      
+      audio.play().then(() => {
+        audio.addEventListener('ended', () => {
+          resolve(); // 오디오 재생이 완료되면 Promise를 resolve합니다.
+        });
+      }).catch(e => {
+        reject(e); // 오디오 재생 중 에러가 발생하면 Promise를 reject합니다.
+      });
+    } catch (error) {
+      reject(error); // 오디오 객체 생성 중 에러가 발생하면 Promise를 reject합니다.
+    }
+  });
 }
 
 function addListItem(text) {
@@ -164,7 +168,7 @@ async function processQ(){
       questionList.pop(0);
       var {answer, audioUrl} = await chatgpt(num);
       contentsToggle(answer,text,1);
-      await handleAudio(audioUrl);
+      await speak(audioUrl);
       contentsToggle("","",2);
       var text=getFirstListItemText();
     }
