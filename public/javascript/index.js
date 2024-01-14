@@ -18,6 +18,12 @@ function fetchStatus() {
           lastIndex = data.lastIndex;
           return;
         }
+        
+        if (!speakBool) {
+          alert("음성듣기를 활성화시켜주세요.");
+          return;
+        }
+        
         var dataLastIndex= data.list.length - 1;
         var lastIndexNum = dataLastIndex != -1 ? data.list[dataLastIndex].num : lastIndex;
 
