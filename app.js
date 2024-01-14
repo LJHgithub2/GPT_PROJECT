@@ -126,7 +126,7 @@ async function gptAPI(text) {
 async function fetchAudio(text, tokenCount) {
     try {
         console.log("tts 시작");
-        const FILE_NAME = "./public/audio/tempAudio"+ audioNum +".mp3"; // 여기에 저장할 파일 이름을 입력하세요
+        const FILE_NAME = "./audio/tempAudio"+ audioNum +".mp3"; // 여기에 저장할 파일 이름을 입력하세요
         audioNum++;
         let headers = {
             'Content-Type': 'application/json',
